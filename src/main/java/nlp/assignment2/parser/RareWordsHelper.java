@@ -4,12 +4,15 @@
  */
 package nlp.assignment2.parser;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,16 +26,24 @@ import java.util.logging.Logger;
 public class RareWordsHelper {
 
     private static Map<String, Integer> wordCounts;
-
-   
+    private static final Gson gson = new Gson();
 
     public static void main(String[] args) {
         wordCounts = new HashMap<String, Integer>();
+
+        String parsedTreeTrainingFileName = "/Users/atharva/Documents/Knowledge/Videos/Natural Language Processing/Assignment/Assignment 2/parser/docs/assignment/parse_train.dat";
+        String trainingFileWithRareFileName = "/Users/atharva/Documents/Knowledge/Videos/Natural Language Processing/Assignment/Assignment 2/parser/docs/assignment/parse_train.RARE.dat";
+
+        countRareWords(parsedTreeTrainingFileName);
+        replaceRareWords(parsedTreeTrainingFileName, trainingFileWithRareFileName);
+
+    }
+
+    private static void countRareWords(String parsedTreeTrainingFileName) {
+
         FileReader trainFR = null;
         BufferedReader br = null;
         try {
-            String parsedTreeTrainingFileName = "/Users/atharva/Documents/Knowledge/Videos/Natural Language Processing/Assignment/Assignment 2/parser/docs/assignment/parse_train.dat";
-            String trainingFileWithRareFileName = "/Users/atharva/Documents/Knowledge/Videos/Natural Language Processing/Assignment/Assignment 2/parser/docs/assignment/parse_train.RARE.dat";
             trainFR = new FileReader(parsedTreeTrainingFileName);
             br = new BufferedReader(trainFR);
             String line = br.readLine();
@@ -64,8 +75,6 @@ public class RareWordsHelper {
                 Logger.getLogger(RareWordsHelper.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-
-
     }
 
     private static void updateWordCounts(String jsonString) {
@@ -98,5 +107,135 @@ public class RareWordsHelper {
             System.out.println("Tree is not in a json array format.");
 
         }
+    }
+
+    private static void replaceRareWords(String parsedTreeTrainingFileName, String trainingFileWithRareFileName) {
+        FileReader fr = null;
+        BufferedReader br = null;
+        FileWriter fw = null;
+        BufferedWriter bw = null;
+        try {
+            fr = new FileReader(parsedTreeTrainingFileName);
+            br = new BufferedReader(fr);
+            fw = new FileWriter(trainingFileWithRareFileName);
+            bw = new BufferedWriter(fw);
+            String line = br.readLine();
+            while (line != null) {
+                if (!line.trim().equals("")) {
+//                    System.out.println("Original string:\n" + line.trim());
+//                    System.out.println("Updated string:\n" + updateLineWithReplacementForRare(line.trim()));
+                    bw.write(updateLineWithReplacementForRare(line.trim()));
+                    bw.write("\n");
+                }
+                
+                
+                line = br.readLine();
+            }
+        } catch (FileNotFoundException ex) {
+
+            Logger.getLogger(RareWordsHelper.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(RareWordsHelper.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(RareWordsHelper.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            
+            if (bw != null) {
+                try {
+                    
+                    bw.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(RareWordsHelper.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+
+    }
+
+    private static class Rule {
+
+        public String nonTerminalRoot;
+    }
+
+    private static class BinaryRule extends Rule {
+
+        public Rule nonTerminalLeft;
+        public Rule nonTerminalRight;
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("[").append("\"").append(nonTerminalRoot).append("\"").append(", ").append(nonTerminalLeft.toString()).append(", ").append(nonTerminalRight.toString()).append("]");
+            return sb.toString();
+        }
+    }
+
+    private static class UnaryRule extends Rule {
+
+        public String terminal;
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("[").append("\"").append(nonTerminalRoot).append("\"").append(", ").append("\"").append(terminal).append("\"").append("]");
+            return sb.toString();
+        }
+    }
+
+    private static String updateLineWithReplacementForRare(String parseTreeString) {
+        JsonParser parser = new JsonParser();
+        JsonElement parseTreeJson = parser.parse(parseTreeString.trim());
+        //Generate parse tree in POJO
+        if (parseTreeJson.isJsonArray()) {
+            JsonArray rule = parseTreeJson.getAsJsonArray();
+            Rule updatedRulesTree = getUpdatedRulesTree(rule);
+            String updatedRulesTreeJsonString;
+
+
+
+            return updatedRulesTree.toString();
+
+        } else {
+            System.out.println("Malformatted parse tree:\n" + parseTreeJson);
+            return "{}";
+        }
+    }
+
+    private static Rule getUpdatedRulesTree(JsonArray ruleInJson) {
+
+        if (ruleInJson.size() == 3) {
+            //binary rule
+            BinaryRule updatedRule = new BinaryRule();
+            updatedRule.nonTerminalRoot = ruleInJson.get(0).getAsString();
+            updatedRule.nonTerminalLeft = getUpdatedRulesTree(ruleInJson.get(1).getAsJsonArray());
+            updatedRule.nonTerminalRight = getUpdatedRulesTree(ruleInJson.get(2).getAsJsonArray());
+            return updatedRule;
+        } else {
+            //unary rule
+            UnaryRule updatedRule = new UnaryRule();
+            updatedRule.nonTerminalRoot = ruleInJson.get(0).getAsString();
+            //Check the terminal word, replace it if it's rare
+            String word = ruleInJson.get(1).getAsString();
+            if (wordCounts.containsKey(word)) {
+                if (wordCounts.get(word) < 5) {
+                    //consider it as rare word, do the replacement
+                    updatedRule.terminal = "_RARE_";
+                } else {
+                    updatedRule.terminal = word;
+                }
+            } else {
+                //consider it as rare word
+                updatedRule.terminal = "_RARE_";
+            }
+            return updatedRule;
+        }
+
+
+
+
     }
 }
