@@ -25,7 +25,11 @@ public class PCFGLearner {
     private Map<String, Integer> NTCounts;
     private Map<String, Map<String, RuleStats>> binaryRuleCounts;
     private Map<String, Map<String, RuleStats>> unaryRuleCounts;
-
+    public PCFGLearner(){
+        NTCounts = new HashMap<String ,Integer>();
+        binaryRuleCounts = new HashMap<String, Map<String, RuleStats>>();
+        unaryRuleCounts  = new HashMap<String, Map<String, RuleStats>>();
+    }
     public void learnPCFG(String trainingFileName) {
         System.out.println("Started learning PCFG.");
         FileReader fr = null;
@@ -44,6 +48,10 @@ public class PCFGLearner {
                 line = br.readLine();
             }
             System.out.println("Completed learning PCFG.");
+            System.out.println("NTCounts:\n"+NTCounts);
+            System.out.println("BinaryRuleCounts:\n" + binaryRuleCounts);
+            System.out.println("UnaryRuleCounts:\n" + unaryRuleCounts);
+            
         } catch (FileNotFoundException ex) {
             Logger.getLogger(PCFGLearner.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -170,6 +178,13 @@ public class PCFGLearner {
 
         private void updateQ(Integer rootCounts) {
             q = ((double) counts) / rootCounts;
+        }
+        
+        @Override
+        public String toString(){
+            StringBuilder sb = new StringBuilder();
+            sb.append("counts: ").append(counts).append(" q:").append(q);
+            return sb.toString();
         }
     }
 }

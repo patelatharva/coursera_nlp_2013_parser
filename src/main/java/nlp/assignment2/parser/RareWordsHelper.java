@@ -28,18 +28,11 @@ public class RareWordsHelper {
     private static Map<String, Integer> wordCounts;
     private static final Gson gson = new Gson();
 
-    public static void main(String[] args) {
-        wordCounts = new HashMap<String, Integer>();
-
-        String parsedTreeTrainingFileName = "/Users/atharva/Documents/Knowledge/Videos/Natural Language Processing/Assignment/Assignment 2/parser/docs/assignment/parse_train.dat";
-        String trainingFileWithRareFileName = "/Users/atharva/Documents/Knowledge/Videos/Natural Language Processing/Assignment/Assignment 2/parser/docs/assignment/parse_train.RARE.dat";
-
-        countRareWords(parsedTreeTrainingFileName);
-        replaceRareWords(parsedTreeTrainingFileName, trainingFileWithRareFileName);
-
+   
+    public RareWordsHelper(){
+        wordCounts = new HashMap<String,Integer>();
     }
-
-    private static void countRareWords(String parsedTreeTrainingFileName) {
+    public void countRareWords(String parsedTreeTrainingFileName) {
 
         FileReader trainFR = null;
         BufferedReader br = null;
@@ -77,14 +70,14 @@ public class RareWordsHelper {
         }
     }
 
-    private static void updateWordCounts(String jsonString) {
+    private  void updateWordCounts(String jsonString) {
         //parese the line for json
         JsonParser parser = new JsonParser();
         JsonElement treeJsonElem = parser.parse(jsonString.trim());
         updateWordCounts(treeJsonElem);
     }
 
-    private static void updateWordCounts(JsonElement treeJsonElem) {
+    private void updateWordCounts(JsonElement treeJsonElem) {
         if (treeJsonElem.isJsonArray()) {
             JsonArray rule = treeJsonElem.getAsJsonArray();
             if (rule.size() == 2) {
@@ -109,7 +102,7 @@ public class RareWordsHelper {
         }
     }
 
-    private static void replaceRareWords(String parsedTreeTrainingFileName, String trainingFileWithRareFileName) {
+    public  void replaceRareWords(String parsedTreeTrainingFileName, String trainingFileWithRareFileName) {
         FileReader fr = null;
         BufferedReader br = null;
         FileWriter fw = null;
@@ -186,7 +179,7 @@ public class RareWordsHelper {
         }
     }
 
-    private static String updateLineWithReplacementForRare(String parseTreeString) {
+    private  String updateLineWithReplacementForRare(String parseTreeString) {
         JsonParser parser = new JsonParser();
         JsonElement parseTreeJson = parser.parse(parseTreeString.trim());
         //Generate parse tree in POJO
@@ -205,7 +198,7 @@ public class RareWordsHelper {
         }
     }
 
-    private static Rule getUpdatedRulesTree(JsonArray ruleInJson) {
+    private Rule getUpdatedRulesTree(JsonArray ruleInJson) {
 
         if (ruleInJson.size() == 3) {
             //binary rule
